@@ -137,3 +137,79 @@ ansible_ssh_private_key_file=/path/to/your-key.pem
       uri:
         url: http://{{ ansible_host }}
         status_code: 200
+
+ansible production -i inventory date_time.yml
+
+ansible production -i inventory -m ping
+ansible production -i inventory -b -m apt -a "name=openjdk-17-jdk state=present update_cache=yes"
+ansible production -i inventory -m command -a "whoami"
+ansible production -i inventory -m command -a "lscpu"
+ansible production -i inventory -m command -a "free -h"
+h) Display Inventory Information
+ansible production:development -i inventory -m command -a "which git"
+ansible production:&development -i inventory -m command -a "which git"
+ansible production:!development -i inventory -m command -a "which git"
+
+pipeline {
+    agent {
+        label 'agent-demo'
+    }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch : 'main', url: 'https://github.com/veer-H/dockercompose.git'
+            }
+        }
+        stage('Deploy with Docker Compose') {
+            steps {
+                script {
+                    sh 'docker compose up -d'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                sh 'docker compose down'
+            }
+        }
+    }
+}
+
+pipeline {
+    agent {
+        label 'docker'  // This ensures the pipeline runs on the agent with the 'docker' label
+    }
+
+    stages {
+        stage('Pull Hello-World Image') {
+            steps {
+                script {
+                    // Ensure Docker is available and pull the hello-world image
+                    sh 'docker --version'
+                    sh 'docker pull hello-world'
+                }
+            }
+        }
+
+        stage('Run Hello-World Container') {
+            steps {
+                script {
+                    // Run the hello-world container
+                    sh 'docker run hello-world'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                // Cleanup: Remove hello-world container if it's still running (although hello-world exits right away)
+                sh 'docker container prune -f'
+                sh 'docker image prune -f'
+            }
+        }
+    }
+}
